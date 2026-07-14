@@ -6,11 +6,14 @@ module.exports = {
     instances: 1,
     exec_mode: 'fork',
     watch: false,
+    max_memory_restart: '400M',
     env: {
       NODE_ENV: 'production',
       PORT: 3025,
-      PROXY_SECRET: 'EwFRiCWj7HnCsJUrJ8BTLk7pE4SBlch',
-      CRM_URL: 'https://fd2a649b-8707-4e38-8086-68a4ac4721f8.vip.gensparksite.com'
+      // За nginx слушаем только локальный интерфейс — наружу не торчим
+      BIND_HOST: '127.0.0.1',
+      // ВАЖНО: должен совпадать с EMAIL_PROXY_SECRET в секретах CRM (Cloudflare)
+      PROXY_SECRET: 'namo_proxy_3fe5af4cc2e4da9148bb05ca529d47789d7b5ad8d39fe763',
     }
   }]
 };
