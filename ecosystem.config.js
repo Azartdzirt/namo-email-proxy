@@ -12,8 +12,10 @@ module.exports = {
       PORT: 3025,
       // За nginx слушаем только локальный интерфейс — наружу не торчим
       BIND_HOST: '127.0.0.1',
-      // ВАЖНО: должен совпадать с EMAIL_PROXY_SECRET в секретах CRM (Cloudflare)
-      PROXY_SECRET: 'namo_proxy_3fe5af4cc2e4da9148bb05ca529d47789d7b5ad8d39fe763',
+      // ВАЖНО: должен совпадать с EMAIL_PROXY_SECRET в секретах CRM (Cloudflare).
+      // Значение подставляется установочным скриптом в файл .env (см. ниже),
+      // здесь секрета намеренно НЕТ — репозиторий публичный.
+      PROXY_SECRET: process.env.PROXY_SECRET || '',
     }
   }]
 };
