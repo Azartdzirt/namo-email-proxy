@@ -27,6 +27,12 @@ const nodemailer = require('nodemailer');
 const Imap       = require('imap');
 const { simpleParser } = require('mailparser');
 
+// ВАЖНО: на некоторых VPS маршрут IPv6 битый/отсутствует, из-за чего nodemailer
+// виснет на подключении к SMTP (Connection timeout), хотя IPv4 работает.
+// Заставляем Node отдавать сперва IPv4-адреса при DNS-резолве.
+const dns = require('dns');
+try { dns.setDefaultResultOrder('ipv4first'); } catch (_) {}
+
 const app  = express();
 const PORT = process.env.PORT || 3025;
 
@@ -72,6 +78,8 @@ function buildTransporter(cfg) {
     host: cfg.host,
     port,
     secure,
+    // Принудительно IPv4 — на VPS IPv6-маршрут часто битый (Connection timeout)
+    family: 4,
     auth: {
       user: cfg.user,
       pass: cfg.pass,
@@ -119,7 +127,7 @@ app.post('/api/send', auth, async (req, res) => {
 
   const toArr = Array.isArray(to) ? to : [to];
 
-  const logPrefix = `[send] tenant=${tenantId || '?'} from=${fromAddress} to=${toArr.join(',')}`;
+  const logPrefix = `[send] tenant=${tenantId || '?'} host=${smtpConfig.host}:${smtpConfig.port} from=${fromAddress} to=${toArr.join(',')}`;
   console.log(`${logPrefix} subject="${subject}"`);
 
   try {
