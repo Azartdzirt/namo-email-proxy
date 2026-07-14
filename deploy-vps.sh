@@ -13,6 +13,10 @@ APP_USER="namodev"
 APP_DIR="/home/${APP_USER}/email-proxy"
 REPO="https://github.com/Azartdzirt/namo-email-proxy.git"
 
+# Секрет для защиты прокси (должен совпадать с EMAIL_PROXY_SECRET в CRM/Cloudflare).
+# Можно переопределить перед запуском:  PROXY_SECRET=xxx bash deploy-vps.sh
+PROXY_SECRET="${PROXY_SECRET:-namo_proxy_3fe5af4cc2e4da9148bb05ca529d47789d7b5ad8d39fe763}"
+
 echo "==> 1/8 Обновление системы"
 apt-get update -y && apt-get upgrade -y
 
@@ -35,8 +39,20 @@ sudo -u "$APP_USER" bash -c "
   npm install --omit=dev
 "
 
+echo "==> 5.5/8 Запись секрета в окружение приложения (.env)"
+# Секрет НЕ хранится в репозитории — кладём его в защищённый .env только на сервере.
+cat > "${APP_DIR}/.env" <<ENVEOF
+NODE_ENV=production
+PORT=3025
+BIND_HOST=127.0.0.1
+PROXY_SECRET=${PROXY_SECRET}
+ENVEOF
+chown "$APP_USER:$APP_USER" "${APP_DIR}/.env"
+chmod 600 "${APP_DIR}/.env"
+
 echo "==> 6/8 Запуск через PM2 (автозагрузка при перезагрузке)"
-sudo -u "$APP_USER" bash -c "cd ${APP_DIR} && pm2 start ecosystem.config.js && pm2 save"
+# Экспортируем PROXY_SECRET в среду перед стартом, чтобы ecosystem.config.js его увидел.
+sudo -u "$APP_USER" PROXY_SECRET="${PROXY_SECRET}" bash -c "cd ${APP_DIR} && pm2 delete email-proxy 2>/dev/null; pm2 start ecosystem.config.js --update-env && pm2 save"
 env PATH="$PATH:/usr/bin" pm2 startup systemd -u "$APP_USER" --hp "/home/${APP_USER}" | tail -1 | bash || true
 
 echo "==> 7/8 Настройка nginx"
